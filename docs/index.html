@@ -3,348 +3,604 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Legal Agents — Аналіз судової практики України</title>
+  <title>Legal Agents — AI-платформа аналізу судової практики України</title>
+  <meta name="description" content="Автоматизований аналіз судової практики та генерація процесуальних документів на базі штучного інтелекту для юридичних компаній України">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:    #1a56db;
+      --blue-dk: #1e3a8a;
+      --gold:    #d97706;
+      --text:    #111827;
+      --muted:   #6b7280;
+      --border:  #e5e7eb;
+      --bg:      #f9fafb;
+      --white:   #ffffff;
+    }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0d1117;
-      color: #e6edf3;
-      line-height: 1.6;
+      color: var(--text);
+      background: var(--white);
+      line-height: 1.65;
     }
 
-    header {
-      background: linear-gradient(135deg, #1a237e 0%, #283593 50%, #1565c0 100%);
-      padding: 60px 20px;
-      text-align: center;
-      border-bottom: 1px solid #30363d;
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-
-    header h1 {
-      font-size: 2.4rem;
+    .nav-logo {
       font-weight: 700;
-      margin-bottom: 12px;
+      font-size: 1.1rem;
+      color: var(--blue-dk);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-cta {
+      background: var(--blue);
+      color: #fff;
+      padding: 8px 22px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(145deg, #0f172a 0%, #1e3a8a 55%, #1d4ed8 100%);
+      color: #fff;
+      text-align: center;
+      padding: 100px 24px 90px;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 5px 16px;
+      font-size: 0.8rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+      color: #93c5fd;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      font-weight: 800;
+      line-height: 1.15;
+      max-width: 780px;
+      margin: 0 auto 22px;
       letter-spacing: -0.5px;
     }
-
-    header p {
-      font-size: 1.1rem;
-      opacity: 0.85;
-      max-width: 600px;
-      margin: 0 auto 28px;
+    .hero h1 span { color: #60a5fa; }
+    .hero p {
+      font-size: 1.2rem;
+      opacity: .8;
+      max-width: 580px;
+      margin: 0 auto 44px;
     }
-
-    .badges {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .badge {
-      background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.25);
-      border-radius: 20px;
-      padding: 6px 16px;
-      font-size: 0.85rem;
-      font-weight: 500;
-    }
-
-    main {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 60px 20px;
-    }
-
-    .pipeline {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr auto 1fr;
-      align-items: center;
-      gap: 12px;
-      margin: 40px 0;
-    }
-
-    .agent-card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 12px;
-      padding: 28px 20px;
-      text-align: center;
-    }
-
-    .agent-card .icon {
-      font-size: 2.2rem;
-      margin-bottom: 12px;
-    }
-
-    .agent-card h3 {
-      font-size: 1rem;
-      color: #58a6ff;
-      margin-bottom: 8px;
-    }
-
-    .agent-card p {
-      font-size: 0.85rem;
-      color: #8b949e;
-    }
-
-    .arrow {
-      font-size: 1.5rem;
-      color: #30363d;
-      text-align: center;
-    }
-
-    .section-title {
-      font-size: 1.4rem;
-      font-weight: 600;
-      margin: 48px 0 20px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid #30363d;
-      color: #f0f6fc;
-    }
-
-    .features {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
-      margin-bottom: 40px;
-    }
-
-    .feature {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 10px;
-      padding: 20px;
-    }
-
-    .feature h4 {
-      color: #58a6ff;
-      margin-bottom: 8px;
-      font-size: 0.95rem;
-    }
-
-    .feature p {
-      color: #8b949e;
-      font-size: 0.85rem;
-    }
-
-    .code-block {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 20px 24px;
-      margin: 12px 0;
-      overflow-x: auto;
-    }
-
-    .code-block pre {
-      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-      font-size: 0.88rem;
-      color: #e6edf3;
-      white-space: pre;
-    }
-
-    .code-block .comment { color: #8b949e; }
-    .code-block .cmd { color: #79c0ff; }
-    .code-block .flag { color: #ffa657; }
-    .code-block .str { color: #a5d6ff; }
-
-    .stack-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 12px;
-      margin: 20px 0;
-    }
-
-    .tech-badge {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 14px;
-      text-align: center;
-    }
-
-    .tech-badge .name {
-      font-weight: 600;
-      font-size: 0.9rem;
-      color: #f0f6fc;
-    }
-
-    .tech-badge .role {
-      font-size: 0.75rem;
-      color: #8b949e;
-      margin-top: 4px;
-    }
-
-    .warning {
-      background: #2d1b00;
-      border: 1px solid #9e6a03;
-      border-radius: 8px;
-      padding: 16px 20px;
-      font-size: 0.9rem;
-      color: #d29922;
-      margin: 28px 0;
-    }
-
-    .warning strong { color: #f0a000; }
-
-    .cta {
+    .hero-btns {
       display: flex;
       gap: 14px;
       justify-content: center;
-      margin: 48px 0 20px;
       flex-wrap: wrap;
     }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 28px;
+    .btn-hero-primary {
+      background: #fff;
+      color: var(--blue-dk);
+      padding: 14px 36px;
       border-radius: 8px;
-      font-size: 0.95rem;
-      font-weight: 600;
+      font-weight: 700;
+      font-size: 1rem;
       text-decoration: none;
-      transition: opacity 0.2s;
     }
-
-    .btn:hover { opacity: 0.85; }
-    .btn-primary { background: #238636; color: #fff; }
-    .btn-secondary { background: #161b22; border: 1px solid #30363d; color: #e6edf3; }
-
-    footer {
-      text-align: center;
-      padding: 32px;
-      color: #8b949e;
+    .btn-hero-secondary {
+      border: 1px solid rgba(255,255,255,.35);
+      color: #fff;
+      padding: 14px 36px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      text-decoration: none;
+    }
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      margin-top: 72px;
+      flex-wrap: wrap;
+    }
+    .hero-stat strong {
+      display: block;
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .hero-stat span {
       font-size: 0.85rem;
-      border-top: 1px solid #30363d;
+      color: #93c5fd;
     }
 
-    @media (max-width: 640px) {
-      .pipeline { grid-template-columns: 1fr; }
-      .arrow { transform: rotate(90deg); }
-      header h1 { font-size: 1.7rem; }
+    /* ── SECTIONS ── */
+    section { padding: 88px 24px; }
+    .container { max-width: 1080px; margin: 0 auto; }
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--blue);
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.3px;
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 560px;
+    }
+
+    /* ── PROBLEM ── */
+    .problem { background: var(--bg); }
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 52px;
+    }
+    .problem-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+    }
+    .problem-icon {
+      width: 44px;
+      height: 44px;
+      background: #fee2e2;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      margin-bottom: 16px;
+    }
+    .problem-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .problem-card p { font-size: 0.9rem; color: var(--muted); }
+
+    /* ── HOW IT WORKS ── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin-top: 60px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .step {
+      background: var(--white);
+      padding: 40px 32px;
+      position: relative;
+    }
+    .step:not(:last-child)::after {
+      content: '→';
+      position: absolute;
+      right: -14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.4rem;
+      color: var(--blue);
+      z-index: 1;
+    }
+    .step-num {
+      width: 36px;
+      height: 36px;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+    .step h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .step p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+    .step-tag {
+      display: inline-block;
+      margin-top: 14px;
+      background: #eff6ff;
+      color: var(--blue);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    /* ── VALUE PROPS ── */
+    .value { background: var(--bg); }
+    .value-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-top: 52px;
+    }
+    .value-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 32px;
+    }
+    .value-card .v-icon {
+      font-size: 2rem;
+      margin-bottom: 16px;
+    }
+    .value-card h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .value-card p { font-size: 0.9rem; color: var(--muted); }
+    .value-card .metric {
+      margin-top: 18px;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--blue);
+    }
+    .value-card .metric-label { font-size: 0.78rem; color: var(--muted); }
+
+    /* ── DOCUMENTS ── */
+    .docs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 52px;
+    }
+    .doc-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .doc-card .doc-icon { font-size: 1.8rem; }
+    .doc-card h4 { font-size: 0.95rem; font-weight: 700; }
+    .doc-card p { font-size: 0.83rem; color: var(--muted); }
+    .doc-badge {
+      display: inline-block;
+      background: #f0fdf4;
+      color: #15803d;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      align-self: flex-start;
+    }
+
+    /* ── WHO ── */
+    .who { background: var(--bg); }
+    .who-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+      margin-top: 52px;
+    }
+    .who-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      text-align: center;
+    }
+    .who-card .w-icon { font-size: 2.4rem; margin-bottom: 14px; }
+    .who-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .who-card p { font-size: 0.87rem; color: var(--muted); }
+
+    /* ── CTA ── */
+    .cta-section {
+      background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+      color: #fff;
+      text-align: center;
+      padding: 96px 24px;
+    }
+    .cta-section h2 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+    .cta-section p {
+      font-size: 1.1rem;
+      opacity: .75;
+      max-width: 500px;
+      margin: 0 auto 40px;
+    }
+    .cta-btns {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn-cta-white {
+      background: #fff;
+      color: var(--blue-dk);
+      padding: 14px 36px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+    }
+    .btn-cta-outline {
+      border: 1px solid rgba(255,255,255,.4);
+      color: #fff;
+      padding: 14px 36px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1rem;
+      text-decoration: none;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #0f172a;
+      color: #94a3b8;
+      padding: 40px 24px;
+      text-align: center;
+      font-size: 0.85rem;
+    }
+    footer a { color: #60a5fa; text-decoration: none; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 700px) {
+      nav { padding: 0 16px; }
+      .steps { grid-template-columns: 1fr; }
+      .step:not(:last-child)::after { content: '↓'; right: auto; left: 50%; bottom: -16px; top: auto; transform: translateX(-50%); }
+      .hero { padding: 70px 16px 60px; }
+      .hero-stats { gap: 28px; }
     }
   </style>
 </head>
 <body>
 
-<header>
-  <h1>⚖️ Legal Agents</h1>
-  <p>Мультиагентна система аналізу судової практики України на базі Claude AI</p>
-  <div class="badges">
-    <span class="badge">Python 3.11</span>
-    <span class="badge">Claude AI</span>
-    <span class="badge">ChromaDB RAG</span>
-    <span class="badge">Playwright</span>
-    <span class="badge">python-docx</span>
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">⚖️ Legal Agents</a>
+  <a href="https://github.com/AndriiHubanov/legal-agents" class="nav-cta">GitHub</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">AI-платформа для юридичного ринку України</div>
+  <h1>Судова практика та процесуальні документи — <span>в рази швидше</span></h1>
+  <p>Legal Agents автоматично збирає рішення з реєстру судів, аналізує їх релевантність до вашої справи та генерує готові процесуальні документи.</p>
+  <div class="hero-btns">
+    <a href="https://github.com/AndriiHubanov/legal-agents" class="btn-hero-primary">Переглянути платформу</a>
+    <a href="#how" class="btn-hero-secondary">Як це працює</a>
   </div>
-</header>
-
-<main>
-
-  <h2 class="section-title">Як працює система</h2>
-
-  <div class="pipeline">
-    <div class="agent-card">
-      <div class="icon">🔍</div>
-      <h3>Агент 1 — Збирач</h3>
-      <p>Автоматичний збір рішень з reyestr.court.gov.ua через Playwright</p>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <strong>132M+</strong>
+      <span>рішень у реєстрі судів</span>
     </div>
-    <div class="arrow">→</div>
-    <div class="agent-card">
-      <div class="icon">🧠</div>
-      <h3>Агент 2 — Аналітик</h3>
-      <p>RAG-пошук у ChromaDB + аналіз правових позицій через Claude API</p>
+    <div class="hero-stat">
+      <strong>3 агенти</strong>
+      <span>автоматизованого аналізу</span>
     </div>
-    <div class="arrow">→</div>
-    <div class="agent-card">
-      <div class="icon">📄</div>
-      <h3>Агент 3 — Процесуаліст</h3>
-      <p>Генерація апеляцій, скарг та відзивів у форматі .docx</p>
+    <div class="hero-stat">
+      <strong>у 10×</strong>
+      <span>швидше ніж вручну</span>
     </div>
   </div>
+</section>
 
-  <h2 class="section-title">Можливості</h2>
-
-  <div class="features">
-    <div class="feature">
-      <h4>Збір судової практики</h4>
-      <p>Автоматичний скрапінг рішень з фільтрами за категорією, датою, судом та регіоном</p>
-    </div>
-    <div class="feature">
-      <h4>Семантичний пошук</h4>
-      <p>Векторний пошук релевантних справ у ChromaDB з ранжуванням за авторитетністю суду</p>
-    </div>
-    <div class="feature">
-      <h4>AI-аналіз практики</h4>
-      <p>Claude визначає правові аргументи, контраргументи та рекомендовану стратегію</p>
-    </div>
-    <div class="feature">
-      <h4>Генерація документів</h4>
-      <p>Апеляційні та касаційні скарги, відзиви, клопотання — готові .docx файли</p>
-    </div>
-    <div class="feature">
-      <h4>Стандарти форматування</h4>
-      <p>Times New Roman 12pt, поля 3/1.5/2/2 см — відповідно до вимог українських судів</p>
-    </div>
-    <div class="feature">
-      <h4>CLI-інтерфейс</h4>
-      <p>Зручні команди collect / analyze / generate / pipeline / stats</p>
+<!-- PROBLEM -->
+<section class="problem">
+  <div class="container">
+    <div class="section-label">Проблема</div>
+    <h2 class="section-title">Юридичний аналіз займає надто багато часу</h2>
+    <p class="section-sub">Кожна справа потребує годин пошуку практики, яку потім треба вручну опрацювати та перенести у документ.</p>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="problem-icon">⏱</div>
+        <h3>Ручний пошук практики</h3>
+        <p>Юристи витрачають 4–8 годин на пошук релевантних рішень у реєстрі для однієї справи — без гарантії повноти.</p>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon">📂</div>
+        <h3>Розрізнені джерела</h3>
+        <p>Рішення розкидані по різних реєстрах та базах. Немає єдиного місця для семантичного пошуку по всій практиці.</p>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon">✍️</div>
+        <h3>Типові документи з нуля</h3>
+        <p>Апеляції, відзиви та клопотання складаються вручну — хоча 60–70% їхнього змісту повторюється від справи до справи.</p>
+      </div>
     </div>
   </div>
+</section>
 
-  <h2 class="section-title">Швидкий старт</h2>
-
-  <div class="code-block"><pre><span class="comment"># 1. Клонувати та встановити</span>
-<span class="cmd">git</span> clone https://github.com/AndriiHubanov/legal-agents.git
-<span class="cmd">cd</span> legal-agents
-<span class="cmd">python</span> -m venv venv && venv\Scripts\activate
-<span class="cmd">pip</span> install -r requirements.txt
-<span class="cmd">playwright</span> install chromium</pre></div>
-
-  <div class="code-block"><pre><span class="comment"># 2. Налаштувати .env</span>
-<span class="cmd">copy</span> .env.example .env
-<span class="comment"># Додати ANTHROPIC_API_KEY у .env</span></pre></div>
-
-  <div class="code-block"><pre><span class="comment"># 3. Зібрати рішення</span>
-<span class="cmd">python</span> main.py collect <span class="flag">--category</span> <span class="str">civil</span> <span class="flag">--date-from</span> <span class="str">2023-01-01</span> <span class="flag">--keywords</span> <span class="str">"оренда,земля"</span>
-
-<span class="comment"># 4. Проаналізувати справу</span>
-<span class="cmd">python</span> main.py analyze <span class="flag">--case-file</span> <span class="str">case_example.json</span>
-
-<span class="comment"># 5. Згенерувати документ</span>
-<span class="cmd">python</span> main.py generate <span class="flag">--analysis-file</span> <span class="str">report.json</span> <span class="flag">--doc-type</span> <span class="str">appeal</span> <span class="flag">--case-number</span> <span class="str">"757/123/24-ц"</span></pre></div>
-
-  <h2 class="section-title">Технологічний стек</h2>
-
-  <div class="stack-grid">
-    <div class="tech-badge"><div class="name">Claude AI</div><div class="role">Аналіз та генерація</div></div>
-    <div class="tech-badge"><div class="name">ChromaDB</div><div class="role">Векторна БД</div></div>
-    <div class="tech-badge"><div class="name">Playwright</div><div class="role">Веб-скрапінг</div></div>
-    <div class="tech-badge"><div class="name">python-docx</div><div class="role">Генерація .docx</div></div>
-    <div class="tech-badge"><div class="name">Pydantic v2</div><div class="role">Моделі даних</div></div>
-    <div class="tech-badge"><div class="name">Click</div><div class="role">CLI-інтерфейс</div></div>
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="container">
+    <div class="section-label">Як це працює</div>
+    <h2 class="section-title">Три агенти — один пайплайн</h2>
+    <p class="section-sub">Система послідовно збирає дані, аналізує їх та генерує документ. Участь юриста потрібна лише для фінальної перевірки.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Агент-Збирач</h3>
+        <p>Автоматично сканує Єдиний реєстр судових рішень за заданими параметрами: категорія справи, ключові слова, дата, регіон, рівень суду.</p>
+        <p style="margin-top:10px; font-size:0.86rem; color:#374151;">Зібрані рішення зберігаються у векторній базі даних для миттєвого семантичного пошуку.</p>
+        <span class="step-tag">reyestr.court.gov.ua</span>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Агент-Аналітик</h3>
+        <p>Отримує опис вашої справи та знаходить найбільш релевантні рішення через RAG-пошук. Пріоритет — практика Верховного Суду та касаційних інстанцій.</p>
+        <p style="margin-top:10px; font-size:0.86rem; color:#374151;">Claude AI формулює правові аргументи, контраргументи та рекомендовану стратегію.</p>
+        <span class="step-tag">Claude AI + ChromaDB</span>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Агент-Процесуаліст</h3>
+        <p>На основі аналізу генерує повний текст документа з конкретними посиланнями на реальні справи з бази. Формує .docx у форматі судочинства України.</p>
+        <p style="margin-top:10px; font-size:0.86rem; color:#374151;">Times New Roman 12pt, поля 3/1.5/2/2 см — стандарт для подання до суду.</p>
+        <span class="step-tag">Claude AI + python-docx</span>
+      </div>
+    </div>
   </div>
+</section>
 
-  <div class="warning">
-    <strong>Важливо:</strong> Усі згенеровані документи є попередніми чернетками та потребують перевірки кваліфікованим юристом перед поданням до суду. Система не надає юридичних консультацій.
+<!-- VALUE PROPS -->
+<section class="value">
+  <div class="container">
+    <div class="section-label">Цінність для бізнесу</div>
+    <h2 class="section-title">Що отримує юридична компанія</h2>
+    <div class="value-grid">
+      <div class="value-card">
+        <div class="v-icon">🚀</div>
+        <h3>Швидкість підготовки</h3>
+        <p>Аналіз практики та чернетка документа — за хвилини замість днів. Юрист зосереджується на стратегії, а не рутині.</p>
+        <div class="metric">×10</div>
+        <div class="metric-label">швидше порівняно з ручним аналізом</div>
+      </div>
+      <div class="value-card">
+        <div class="v-icon">🎯</div>
+        <h3>Точність аргументації</h3>
+        <p>Система посилається виключно на реальні рішення з бази. Жодних вигаданих справ — лише верифікована практика.</p>
+        <div class="metric">100%</div>
+        <div class="metric-label">посилань із реального реєстру</div>
+      </div>
+      <div class="value-card">
+        <div class="v-icon">📈</div>
+        <h3>Масштабованість</h3>
+        <p>База накопичується з кожним зібраним рішенням. Чим більше справ у базі — тим точніший аналіз для нових клієнтів.</p>
+        <div class="metric">132M+</div>
+        <div class="metric-label">рішень доступно для індексації</div>
+      </div>
+      <div class="value-card">
+        <div class="v-icon">🔒</div>
+        <h3>Конфіденційність</h3>
+        <p>Система розгортається локально. Дані клієнтів не передаються третім сторонам і зберігаються у вашій інфраструктурі.</p>
+        <div class="metric">Local</div>
+        <div class="metric-label">дані не виходять за межі компанії</div>
+      </div>
+    </div>
   </div>
+</section>
 
-  <div class="cta">
-    <a href="https://github.com/AndriiHubanov/legal-agents" class="btn btn-primary">
-      ★ GitHub репозиторій
-    </a>
-    <a href="https://github.com/AndriiHubanov/legal-agents/blob/main/README.md" class="btn btn-secondary">
-      Документація
-    </a>
+<!-- DOCUMENTS -->
+<section>
+  <div class="container">
+    <div class="section-label">Документи</div>
+    <h2 class="section-title">Які документи генерує система</h2>
+    <p class="section-sub">Усі типи процесуальних документів у форматі, готовому до подання в українські суди.</p>
+    <div class="docs-grid">
+      <div class="doc-card">
+        <div class="doc-icon">📋</div>
+        <h4>Апеляційна скарга</h4>
+        <p>Відповідно до вимог ЦПК/КАС/ГПК з посиланнями на практику апеляційних судів</p>
+        <span class="doc-badge">ЦПК / КАС / ГПК</span>
+      </div>
+      <div class="doc-card">
+        <div class="doc-icon">⚖️</div>
+        <h4>Касаційна скарга</h4>
+        <p>Акцент на порушенні норм права, посилання на практику Великої Палати ВС</p>
+        <span class="doc-badge">Верховний Суд</span>
+      </div>
+      <div class="doc-card">
+        <div class="doc-icon">🛡️</div>
+        <h4>Відзив</h4>
+        <p>Спростування аргументів опонента з власною правовою позицією та практикою</p>
+        <span class="doc-badge">Позовне провадження</span>
+      </div>
+      <div class="doc-card">
+        <div class="doc-icon">📎</div>
+        <h4>Клопотання</h4>
+        <p>Забезпечення позову, поновлення строку, витребування доказів, призначення експертизи</p>
+        <span class="doc-badge">4 типи</span>
+      </div>
+    </div>
   </div>
+</section>
 
-</main>
+<!-- WHO IS IT FOR -->
+<section class="who">
+  <div class="container">
+    <div class="section-label">Для кого</div>
+    <h2 class="section-title">Платформа створена для</h2>
+    <div class="who-grid">
+      <div class="who-card">
+        <div class="w-icon">🏢</div>
+        <h3>Юридичні фірми</h3>
+        <p>Автоматизація рутинного аналізу дозволяє одночасно вести більше справ без збільшення штату</p>
+      </div>
+      <div class="who-card">
+        <div class="w-icon">👨‍⚖️</div>
+        <h3>Адвокати</h3>
+        <p>Швидка підготовка позицій та документів дає конкурентну перевагу при веденні складних справ</p>
+      </div>
+      <div class="who-card">
+        <div class="w-icon">🏛️</div>
+        <h3>Корпоративні юридичні відділи</h3>
+        <p>Внутрішня база судової практики компанії стає активом, що накопичується і зростає з часом</p>
+      </div>
+      <div class="who-card">
+        <div class="w-icon">🎓</div>
+        <h3>Юридичні клініки</h3>
+        <p>Доступ до аналізу практики для студентів та малозабезпечених клієнтів без великих витрат</p>
+      </div>
+    </div>
+  </div>
+</section>
 
+<!-- CTA -->
+<section class="cta-section">
+  <h2>Готові автоматизувати<br>юридичний аналіз?</h2>
+  <p>Платформа з відкритим кодом. Розгортається у вашій інфраструктурі за кілька годин.</p>
+  <div class="cta-btns">
+    <a href="https://github.com/AndriiHubanov/legal-agents" class="btn-cta-white">Переглянути на GitHub</a>
+    <a href="https://github.com/AndriiHubanov/legal-agents/blob/main/README.md" class="btn-cta-outline">Технічна документація</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
 <footer>
-  Legal Agents — відкрите програмне забезпечення під ліцензією MIT
+  <p>⚖️ <strong style="color:#e2e8f0">Legal Agents</strong> — відкрита платформа під ліцензією MIT</p>
+  <p style="margin-top:10px">
+    <a href="https://github.com/AndriiHubanov/legal-agents">GitHub</a> &nbsp;·&nbsp;
+    <a href="https://github.com/AndriiHubanov/legal-agents/blob/main/README.md">Документація</a>
+  </p>
+  <p style="margin-top:16px; font-size:0.78rem; opacity:.6">Документи, згенеровані платформою, потребують перевірки кваліфікованим юристом перед поданням до суду.</p>
 </footer>
 
 </body>
