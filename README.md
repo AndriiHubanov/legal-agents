@@ -1,65 +1,73 @@
-# Мультиагентна система аналізу судової практики України
+# Legal Agents v2 — 5-агентна AI-система для юридичного ринку України
 
-Автоматизована Python-система з трьох послідовних AI-агентів для роботи з судовими рішеннями.
+> **[Лендінг](https://andriihubanov.github.io/legal-agents)** · **[Архітектура](ARCHITECTURE.md)**
 
-## Архітектура
+Система п'яти спеціалізованих AI-агентів із зворотним зв'язком та Prompt Caching. Агенти спілкуються між собою: критик змушує архітектора переосмислити позицію, експерт повертає документ на доопрацювання — доки якість не відповідає найвищому стандарту.
+
+---
+
+## Архітектура (коротко)
 
 ```
-Агент 1 (Збирач)     →    Агент 2 (Аналітик)    →    Агент 3 (Процесуаліст)
-reyestr.court.gov.ua      ChromaDB RAG + Claude        Claude + python-docx
-       ↓                         ↓                            ↓
-  CourtDecision             AnalysisReport             .docx документ
+Ситуація (вільний текст)
+    │
+    ▼
+Agent 1 (Архітектор)  ──→  IntakeResult
+    │
+    ▼
+Agent 2 (Калькулятор) ──→  FeesCalculation
+    │
+    ▼
+[Collector + Analyzer] ──→  AnalysisReport (судова практика, опційно)
+    │
+    ▼  ◀──────────────────────────────────────────────┐
+Agent 3 (Критик)       ──→  CriticReview              │ якщо revise_critic
+    │ якщо critical_issues                             │
+    ▼                                                  │
+  Agent 1 (revision) → Agent 2 → Agent 3 (again)      │
+    │ якщо approved / needs_revision                   │
+    ▼                                                  │
+Agent 4 (Генератор + Compliance) ──→ GeneratedDocumentV2
+    │
+    ▼
+Agent 5 (Експерт) ──→ approved → .docx ✓
+                  ──→ revise_generator → Agent 4 ──→ Agent 5
+                  ──→ revise_critic    ────────────────────────┘
 ```
 
-| Агент | Роль | Технології |
-|-------|------|------------|
-| Agent 1 | Збір рішень з реєстру судових рішень | Playwright, BeautifulSoup, ChromaDB |
-| Agent 2 | RAG-пошук + аналіз практики | ChromaDB, Claude API, Pydantic |
-| Agent 3 | Генерація процесуальних документів | Claude API, python-docx |
+Детальний опис кожного агента, моделей даних та Prompt Caching → [`ARCHITECTURE.md`](ARCHITECTURE.md)
+
+---
 
 ## Встановлення
 
-### 1. Передумови
+### Передумови
 
 - Python 3.11+
-- Ключ API Anthropic ([отримати тут](https://console.anthropic.com/))
+- Ключ API Anthropic ([console.anthropic.com](https://console.anthropic.com/))
 
-### 2. Клонувати репозиторій
+### Кроки
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/legal-agents.git
+git clone https://github.com/AndriiHubanov/legal-agents.git
 cd legal-agents
-```
 
-### 3. Створити віртуальне середовище
-
-```bash
 python -m venv venv
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # macOS/Linux
 
-# Windows
-venv\Scripts\activate
-
-# macOS/Linux
-source venv/bin/activate
-```
-
-### 4. Встановити залежності
-
-```bash
 pip install -r requirements.txt
 playwright install chromium
-```
 
-### 5. Налаштувати змінні середовища
-
-```bash
 cp .env.example .env
+# Відредагувати .env: вставити ANTHROPIC_API_KEY
 ```
 
-Відредагувати `.env`:
-
+`.env`:
 ```env
 ANTHROPIC_API_KEY=sk-ant-...
+CLAUDE_MODEL=claude-sonnet-4-20250514
+MAX_TOKENS=4096
 CHROMA_DB_PATH=./data/chroma_db
 RAW_DATA_PATH=./data/raw_decisions
 OUTPUT_PATH=./data/output_documents
@@ -67,109 +75,81 @@ REPORTS_PATH=./data/analysis_reports
 SCRAPE_DELAY_SECONDS=3
 MAX_DECISIONS_PER_RUN=100
 HEADLESS_BROWSER=true
-CLAUDE_MODEL=claude-sonnet-4-20250514
-MAX_TOKENS=4096
 ```
 
-### 6. Перевірити встановлення
-
+Перевірити:
 ```bash
-python main.py stats
+python main.py --help
 ```
 
 ---
 
 ## Використання
 
-### Агент 1 — Збір рішень
+### Головна команда — 5-агентний пайплайн
+
+```bash
+python main.py smart-pipeline \
+  --situation "Орендар не платить оренду 6 місяців. Хочу розірвати договір і стягнути борг 150 000 грн." \
+  --plaintiff "Іваненко Іван Іванович" \
+  --plaintiff-details "м. Київ, вул. Хрещатик 1, кв.1, РНОКПП 1234567890, тел. 0671234567" \
+  --defendant "ТОВ Агро-Захід" \
+  --defendant-details "м. Київ, вул. Польова 5, ЄДРПОУ 12345678" \
+  --court "Господарський суд міста Києва" \
+  --case-number "910/1234/24" \
+  --max-iterations 3
+```
+
+**Параметри:**
+
+| Параметр | Опис |
+|----------|------|
+| `--situation` `-s` | Текст ситуації (вільний текст) |
+| `--situation-file` `-f` | Шлях до текстового файлу з ситуацією |
+| `--plaintiff` | ПІБ або назва позивача |
+| `--plaintiff-details` | Адреса, РНОКПП/ЄДРПОУ, пошта, тел. |
+| `--defendant` | ПІБ або назва відповідача |
+| `--defendant-details` | Адреса, РНОКПП/ЄДРПОУ |
+| `--court` | Назва суду (якщо відома) |
+| `--lawyer` | ПІБ адвоката/представника |
+| `--case-number` `-n` | Номер справи |
+| `--max-iterations` | Максимум ітерацій (за замовчуванням: 3) |
+| `--analysis-file` `-a` | Існуючий JSON-звіт аналізу (пропустити збір) |
+| `--no-analysis` | Не запускати аналіз практики |
+| `--save-state` | Зберегти стан пайплайну у JSON |
+
+**Вихід:** `.docx` у `data/output_documents/`
+
+---
+
+### Попереднє наповнення бази судових рішень
+
+Перш ніж запускати `smart-pipeline --analysis-file`, потрібно наповнити ChromaDB:
 
 ```bash
 python main.py collect \
   --category civil \
-  --date-from 2023-01-01 \
-  --date-to 2024-12-31 \
-  --keywords "оренда,земля,розірвання" \
+  --date-from 2022-01-01 \
+  --keywords "оренда,земля,розірвання,борг" \
   --court-level appeal \
-  --max 100
+  --max 200
 ```
 
-**Параметри:**
-- `--category`: `civil` | `admin` | `commercial` | `criminal` | `labor`
-- `--date-from` / `--date-to`: формат `YYYY-MM-DD`
-- `--keywords`: слова через кому
-- `--court-level`: `first` | `appeal` | `cassation`
-- `--region`: назва регіону (наприклад, `Київська`)
-- `--no-claude`: не використовувати Claude для витягу позицій (швидше)
+**Параметри collect:**
+
+| Параметр | Значення |
+|----------|----------|
+| `--category` | `civil` / `admin` / `commercial` / `criminal` / `labor` |
+| `--date-from` / `--date-to` | `YYYY-MM-DD` |
+| `--keywords` | Слова через кому |
+| `--court-level` | `first` / `appeal` / `cassation` |
+| `--region` | Назва регіону (наприклад, `Київська`) |
+| `--max` | Максимальна кількість рішень |
+| `--no-claude` | Не використовувати Claude для парсингу (швидше) |
 
 ---
 
-### Агент 2 — Аналіз практики
-
-Підготувати файл `case.json`:
-
-```json
-{
-  "category": "civil",
-  "subject": "Розірвання договору оренди земельної ділянки",
-  "key_facts": "Орендодавець вимагає дострокового розірвання договору через несплату орендної плати протягом 3 місяців",
-  "desired_outcome": "Відмова у задоволенні позову про розірвання договору",
-  "court_level": "appeal",
-  "opposing_arguments": "Несплата орендних платежів протягом 3 місяців є підставою для розірвання"
-}
-```
-
-```bash
-python main.py analyze --case-file case.json --top-k 20
-```
-
-**Вихід:** Markdown-звіт та JSON у `data/analysis_reports/`
-
----
-
-### Агент 3 — Генерація документа
-
-```bash
-python main.py generate \
-  --analysis-file data/analysis_reports/report_20240101_120000_Розірвання.json \
-  --doc-type appeal \
-  --case-number "757/12345/24-ц" \
-  --plaintiff "Іваненко Іван Іванович" \
-  --defendant "ТОВ 'Агро-Захід'" \
-  --court "Київський апеляційний суд" \
-  --lawyer "Адвокат Петренко П.П."
-```
-
-**Типи документів:**
-- `appeal` — апеляційна скарга
-- `cassation` — касаційна скарга
-- `objection` — відзив на позов/скаргу
-- `motion_security` — клопотання про забезпечення позову
-- `motion_restore_deadline` — клопотання про поновлення строку
-- `motion_evidence` — клопотання про витребування доказів
-- `motion_expert` — клопотання про призначення експертизи
-- `motion_adjournment` — клопотання про відкладення
-
-**Вихід:** `.docx` файл у `data/output_documents/`
-
----
-
-### Повний пайплайн
-
-```bash
-python main.py pipeline \
-  --case-file case.json \
-  --doc-type appeal \
-  --case-number "757/12345/24-ц" \
-  --plaintiff "Іваненко І.І." \
-  --defendant "ТОВ 'Агро-Захід'" \
-  --court "Київський апеляційний суд"
-```
-
-Прапор `--collect` додатково запускає збір нових рішень перед аналізом.
-
----
-
-### Статистика бази даних
+### Статистика бази
 
 ```bash
 python main.py stats
@@ -181,114 +161,169 @@ python main.py stats
 
 ```
 legal-agents/
-├── main.py                     # CLI-інтерфейс
+├── main.py                       # CLI (команди: collect, stats, smart-pipeline)
 ├── requirements.txt
 ├── .env.example
+├── ARCHITECTURE.md               # Детальна технічна документація
 │
-├── shared/                     # Спільні компоненти
-│   ├── config.py               # Налаштування (env змінні)
-│   ├── models.py               # Pydantic моделі даних
-│   ├── logger.py               # Rich логування
-│   └── claude_client.py        # Обгортка Anthropic API
+├── shared/                       # Спільні компоненти
+│   ├── config.py                 # Налаштування (.env)
+│   ├── models.py                 # Pydantic моделі (V1 + V2)
+│   ├── logger.py                 # Rich логування
+│   ├── claude_client.py          # Claude API + analyze_cached()
+│   └── legal_texts.py            # Тексти ЦПК/КАС/ГПК/ЗСЗ для Prompt Caching
 │
-├── agent1_collector/           # Агент 1: Збір рішень
-│   ├── scraper.py              # Playwright скрапер
-│   ├── parser.py               # Парсинг HTML
-│   ├── storage.py              # ChromaDB + JSON
-│   └── filters.py              # Фільтри пошуку
+├── agent1_intake/                # Agent 1: Архітектор позову
+│   └── intake_agent.py
 │
-├── agent2_analyst/             # Агент 2: Аналітик
-│   ├── retriever.py            # RAG-пошук
-│   ├── ranker.py               # Ранжування
-│   ├── analyzer.py             # Claude аналіз
-│   └── report.py               # Форматування звіту
+├── agent2_fees/                  # Agent 2: Калькулятор судових зборів
+│   └── fees_calculator.py
 │
-├── agent3_writer/              # Агент 3: Процесуаліст
-│   ├── generator.py            # Claude генерація тексту
-│   ├── docx_builder.py         # python-docx збірка
-│   └── templates/              # Промпти по типах документів
-│       ├── appeal.py
-│       ├── cassation.py
-│       ├── objection.py
-│       └── motion.py
+├── agent3_critic/                # Agent 3: Критик / Опонент
+│   └── critic_agent.py
 │
-└── data/                       # Дані (не в git)
-    ├── chroma_db/              # Векторна БД
-    ├── raw_decisions/          # JSON рішень
-    ├── analysis_reports/       # Звіти Агента 2
-    └── output_documents/       # Готові .docx
+├── agent4_generator/             # Agent 4: Генератор + Compliance
+│   ├── generator_v2.py
+│   └── compliance.py
+│
+├── agent5_expert/                # Agent 5: Надпотужний Експерт
+│   └── expert_reviewer.py
+│
+├── orchestrator/                 # Оркестратор пайплайну
+│   ├── pipeline_v2.py            # Головний цикл з feedback loops
+│   └── state.py                  # PipelineState (збереження/відновлення)
+│
+├── agent1_collector/             # (V1) Скрапер реєстру судових рішень
+│   ├── scraper.py
+│   ├── parser.py
+│   ├── storage.py                # ChromaDB + JSON
+│   └── filters.py
+│
+├── agent2_analyst/               # (V1) RAG-аналіз практики
+│   ├── retriever.py
+│   ├── ranker.py
+│   └── analyzer.py
+│
+├── agent3_writer/                # (V1) Збірка .docx
+│   └── docx_builder.py
+│
+├── data/                         # Дані (не в git)
+│   ├── chroma_db/                # Векторна БД рішень
+│   ├── raw_decisions/            # JSON рішень
+│   ├── analysis_reports/         # Звіти RAG-аналізу
+│   └── output_documents/         # Готові .docx + pipeline states
+│
+└── docs/                         # GitHub Pages лендінг
+    └── index.html
 ```
 
 ---
 
-## Формати даних
+## Типові сценарії
 
-### Вхідний файл справи (case.json)
+### Сценарій 1: Перший запуск (без бази)
 
-| Поле | Тип | Опис |
-|------|-----|------|
-| `category` | `civil\|admin\|commercial\|criminal\|labor` | Категорія справи |
-| `subject` | string | Предмет спору |
-| `key_facts` | string | Ключові факти |
-| `desired_outcome` | string | Бажаний результат |
-| `court_level` | `first\|appeal\|cassation` | Рівень суду |
-| `opposing_arguments` | string (опційно) | Аргументи іншої сторони |
+```bash
+# Наповнити базу за категорією справи
+python main.py collect --category civil --date-from 2023-01-01 --keywords "борг,стягнення" --max 100
 
-### CourtDecision (внутрішня модель)
+# Запустити пайплайн без аналізу (якщо бажаєте тільки структурований документ)
+python main.py smart-pipeline \
+  --situation "Клієнт позичив 50 000 грн у фізичної особи під розписку, не повертає вже 2 роки." \
+  --plaintiff "Петренко П.П." --defendant "Сидоренко С.С." \
+  --no-analysis
+```
 
-| Поле | Тип | Опис |
-|------|-----|------|
-| `id` | string | Унікальний ID |
-| `registry_number` | string | Номер справи |
-| `court_name` | string | Назва суду |
-| `decision_date` | date | Дата рішення |
-| `category` | string | Категорія |
-| `result` | string | Результат рішення |
-| `legal_positions` | list[string] | Витягнуті правові позиції |
-| `url` | string | Джерело |
+### Сценарій 2: З аналізом практики (рекомендовано)
+
+```bash
+python main.py smart-pipeline \
+  --situation-file situation.txt \
+  --plaintiff "ТОВ Юридичний Консалтинг" \
+  --defendant "Міністерство юстиції України" \
+  --max-iterations 2 \
+  --save-state
+```
+
+### Сценарій 3: Використати існуючий аналіз
+
+```bash
+python main.py smart-pipeline \
+  --situation "..." \
+  --analysis-file data/analysis_reports/report_20240601.json
+```
 
 ---
 
-## Обмеження та важливі примітки
+## Prompt Caching — економія токенів
 
-### Rate limiting (reyestr.court.gov.ua)
+Кожен агент розбиває system prompt на два блоки:
+
+```
+cached_system  (кешується, ~3 000–8 000 токенів)
+  └─ Роль агента + тексти кодексів (ЦПК, КАС, ГПК, ЗСЗ) + стандарти якості
+
+dynamic_system (не кешується, ~200–400 токенів)
+  └─ Контекст поточної ітерації + зауваження попередніх агентів
+```
+
+При 3 ітераціях пайплайну:
+- **Ітерація 1:** `cache_write` — повна вартість
+- **Ітерація 2–3:** `cache_read` — ~10% вартості вхідних токенів
+
+Загальна економія на ітеративних перевірках: **~80–90%** вхідних токенів.
+
+---
+
+## Вартість API (орієнтовно)
+
+| Операція | Вхідні токени | Вихідні токени |
+|----------|---------------|----------------|
+| Agent 1 (перша ітерація) | ~6 000 | ~800 |
+| Agent 2 | ~9 000 | ~500 |
+| Agent 3 (critic) | ~12 000 | ~1 000 |
+| Agent 4 (generation) | ~15 000 | ~4 000 |
+| Agent 4 (compliance) | ~10 000 | ~600 |
+| Agent 5 (expert) | ~20 000 | ~1 500 |
+| **Разом (1 ітерація)** | **~72 000** | **~8 400** |
+| **Разом (3 ітерації, з кешем)** | **~90 000** | **~25 000** |
+
+*Без Prompt Caching 3 ітерації коштували б ~216 000 вхідних токенів.*
+
+---
+
+## Обмеження
+
+### reyestr.court.gov.ua
 - Мінімальна затримка між запитами: **3 секунди**
-- При отриманні 429/503 — exponential backoff
-- Рекомендовано не більше 100 рішень за сесію
+- Рекомендовано не більше **100 рішень** за сесію
+- При 429/503 — автоматичний exponential backoff
 
-### Якість генерації документів
-- Система посилається **тільки** на рішення з бази даних
-- Номери справ у документах беруться виключно з реальних зібраних даних
-- Чим більше рішень у базі — тим кращий аналіз
+### Якість результату
+- Система посилається **тільки** на рішення з ChromaDB
+- Чим більше рішень у базі — тим точніший аналіз
+- Прохідний бал для схвалення документа: **7.5/10** за кожним критерієм
 
-### Вартість API
-- Один аналіз (Агент 2): ~5–15 тис. вхідних токенів + ~2 тис. вихідних
-- Генерація документа (Агент 3): ~8–20 тис. вхідних токенів + ~4 тис. вихідних
+### Важливо
 
----
-
-## Попередження
-
-> **ВАЖЛИВО:** Усі згенеровані документи є попередніми чернетками та **обов'язково потребують перевірки та редагування кваліфікованим юристом** перед поданням до суду.
->
-> Система не надає юридичних консультацій. Результати аналізу мають інформаційний характер.
+> Усі згенеровані документи є попередніми чернетками та **обов'язково потребують перевірки кваліфікованим юристом** перед поданням до суду. Система не надає юридичних консультацій.
 
 ---
 
 ## Стек технологій
 
-| Компонент | Технологія | Версія |
-|-----------|-----------|--------|
-| AI | Anthropic Claude | claude-sonnet-4 |
-| Векторна БД | ChromaDB | ≥0.5 |
-| Веб-скрапінг | Playwright | ≥1.44 |
-| Документи | python-docx | ≥1.1 |
-| Валідація | Pydantic v2 | ≥2.0 |
-| CLI | Click | ≥8.1 |
-| Логування | Rich | ≥13.0 |
+| Компонент | Технологія |
+|-----------|-----------|
+| AI | Anthropic Claude claude-sonnet-4 |
+| Prompt Caching | Anthropic API `cache_control: ephemeral` |
+| Векторна БД | ChromaDB |
+| Веб-скрапінг | Playwright + BeautifulSoup |
+| Документи | python-docx |
+| Валідація | Pydantic v2 |
+| CLI | Click + Rich |
 
 ---
 
 ## Ліцензія
 
-MIT License — для некомерційного та дослідницького використання.
+MIT — для некомерційного та дослідницького використання.
