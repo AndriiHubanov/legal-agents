@@ -98,7 +98,7 @@ async def _collect_async(
 ):
     from agent1_collector.filters import SearchFilters
     from agent1_collector.scraper import CourtScraper
-    from agent1_collector.parser import parse_decision_page, extract_legal_positions, detect_decision_result, normalize_court_name
+    from agent1_collector.parser import parse_decision_page, extract_structured_positions, detect_decision_result, normalize_court_name
     from agent1_collector.storage import DecisionStorage
     from shared.models import CourtDecision
     import uuid
@@ -138,9 +138,9 @@ async def _collect_async(
     for raw in raw_decisions:
         try:
             parsed = parse_decision_page(raw.get("full_text", ""))
-            legal_positions = []
+            structured = {}
             if claude_client and raw.get("full_text"):
-                legal_positions = extract_legal_positions(raw["full_text"], claude_client)
+                structured = extract_structured_positions(raw["full_text"], claude_client)
 
             decision = CourtDecision(
                 id=raw.get("id", str(uuid.uuid4())),
@@ -152,7 +152,10 @@ async def _collect_async(
                 subject=parsed.get("subject") or raw.get("registry_number", ""),
                 result=parsed.get("result", "невідомо"),
                 full_text=raw.get("full_text", ""),
-                legal_positions=legal_positions,
+                legal_positions=structured.get("legal_positions", []),
+                cited_laws=structured.get("cited_laws", []),
+                damage_amount=structured.get("damage_amount"),
+                evidence_types=structured.get("evidence_types", []),
                 url=raw.get("url", ""),
             )
             storage.save_decision(decision)
@@ -161,230 +164,6 @@ async def _collect_async(
             console.print(f"[red]Помилка обробки {raw.get('id', '?')}: {e}[/red]")
 
     console.print(f"\n[bold green]Збережено {saved_count} рішень у ChromaDB та JSON[/bold green]")
-
-
-# ===========================================================================
-# Команда: analyze
-# ===========================================================================
-
-@cli.command()
-@click.option("--case-file", "-f", required=True, type=click.Path(exists=True),
-              help="Шлях до JSON файлу з описом справи")
-@click.option("--top-k", default=20, show_default=True,
-              help="Кількість релевантних рішень для аналізу")
-@click.option("--output", "-o", default=None,
-              help="Шлях для збереження звіту (за замовчуванням — автоматично)")
-def analyze(case_file, top_k, output):
-    """
-    Агент 2: Аналіз судової практики під конкретну справу
-
-    \b
-    Приклад:
-      python main.py analyze --case-file case.json
-    """
-    _analyze_cmd(case_file, top_k, output)
-
-
-def _analyze_cmd(case_file: str, top_k: int, output: str | None) -> str:
-    """Повертає шлях до збереженого звіту"""
-    from shared.models import CaseDescription
-    from shared.claude_client import ClaudeClient
-    from agent1_collector.storage import DecisionStorage
-    from agent2_analyst.retriever import PracticeRetriever
-    from agent2_analyst.analyzer import PracticeAnalyzer
-    from agent2_analyst.report import save_report, print_summary
-
-    settings = _load_settings()
-
-    # Завантажити опис справи
-    case_data = json.loads(Path(case_file).read_text(encoding="utf-8"))
-    case = CaseDescription.model_validate(case_data)
-
-    console.print(Panel(
-        f"Справа: [cyan]{case.subject[:80]}[/cyan]\n"
-        f"Категорія: [cyan]{case.category}[/cyan]",
-        title="[bold blue]Агент 2: Аналіз практики",
-    ))
-
-    storage = DecisionStorage()
-    retriever = PracticeRetriever(storage)
-    claude_client = ClaudeClient()
-    analyzer = PracticeAnalyzer(claude_client)
-
-    # Пошук та аналіз
-    relevant = retriever.find_relevant(case, top_k=top_k)
-    console.print(f"Знайдено [green]{len(relevant)}[/green] релевантних рішень")
-
-    report = analyzer.analyze(case, relevant)
-    print_summary(report)
-
-    # Зберегти
-    report_path = save_report(report, filename=output)
-    console.print(f"\n[bold]Звіт збережено:[/bold] {report_path}")
-    return report_path
-
-
-# ===========================================================================
-# Команда: generate
-# ===========================================================================
-
-@cli.command()
-@click.option("--analysis-file", "-a", required=True, type=click.Path(exists=True),
-              help="Шлях до JSON файлу зі звітом аналізу")
-@click.option("--doc-type", "-t", required=True,
-              type=click.Choice(["appeal", "cassation", "objection",
-                                 "motion_security", "motion_restore_deadline",
-                                 "motion_evidence", "motion_expert", "motion_adjournment"]),
-              help="Тип документа")
-@click.option("--case-number", "-n", required=True, help="Номер справи")
-@click.option("--plaintiff", default="", help="Позивач/Апелянт")
-@click.option("--defendant", default="", help="Відповідач")
-@click.option("--court", default="", help="Назва суду")
-@click.option("--lawyer", default="", help="ПІБ адвоката/представника")
-@click.option("--output", "-o", default=None, help="Шлях для вихідного .docx файлу")
-def generate(analysis_file, doc_type, case_number, plaintiff, defendant, court, lawyer, output):
-    """
-    Агент 3: Генерація процесуального документа (.docx)
-
-    \b
-    Приклад:
-      python main.py generate --analysis-file report.json --doc-type appeal --case-number 1-123/2024
-    """
-    from shared.models import AnalysisReport, DocumentRequest
-    from shared.claude_client import ClaudeClient
-    from agent3_writer.generator import DocumentGenerator
-    from agent3_writer.docx_builder import DocxBuilder
-
-    settings = _load_settings()
-
-    analysis_data = json.loads(Path(analysis_file).read_text(encoding="utf-8"))
-    analysis_report = AnalysisReport.model_validate(analysis_data)
-
-    request = DocumentRequest(
-        document_type=doc_type,
-        analysis_report=analysis_report,
-        case_parties={
-            "plaintiff": plaintiff,
-            "defendant": defendant,
-            "court": court,
-        },
-        case_number=case_number,
-        lawyer_name=lawyer or None,
-    )
-
-    console.print(Panel(
-        f"Тип: [cyan]{doc_type}[/cyan]\n"
-        f"Справа: [cyan]{case_number}[/cyan]\n"
-        f"Суд: [cyan]{court or '—'}[/cyan]",
-        title="[bold blue]Агент 3: Генерація документа",
-    ))
-
-    claude_client = ClaudeClient()
-    generator = DocumentGenerator(claude_client)
-    builder = DocxBuilder()
-
-    console.print("Генерую текст документа через Claude...")
-    text = generator.generate(request)
-
-    console.print("Збираю .docx файл...")
-    docx_path = builder.build(text, request)
-
-    if output:
-        import shutil
-        shutil.copy(docx_path, output)
-        docx_path = output
-
-    console.print(f"\n[bold green]Документ готовий:[/bold green] {docx_path}")
-
-
-# ===========================================================================
-# Команда: pipeline (повний пайплайн)
-# ===========================================================================
-
-@cli.command()
-@click.option("--case-file", "-f", required=True, type=click.Path(exists=True),
-              help="JSON файл з описом справи")
-@click.option("--doc-type", "-t", default="appeal",
-              type=click.Choice(["appeal", "cassation", "objection",
-                                 "motion_security", "motion_restore_deadline",
-                                 "motion_evidence", "motion_expert"]),
-              help="Тип вихідного документа")
-@click.option("--case-number", "-n", default="", help="Номер справи")
-@click.option("--plaintiff", default="", help="Позивач/Апелянт")
-@click.option("--defendant", default="", help="Відповідач")
-@click.option("--court", default="", help="Назва суду")
-@click.option("--collect/--no-collect", "run_collect", default=False,
-              help="Запустити збір нових рішень перед аналізом")
-def pipeline(case_file, doc_type, case_number, plaintiff, defendant, court, run_collect):
-    """
-    Повний пайплайн: Аналіз → Генерація документа
-    (Агент 1 опційно → Агент 2 → Агент 3)
-
-    \b
-    Приклад:
-      python main.py pipeline --case-file case.json --doc-type appeal --case-number 1-123/2024
-    """
-    console.print(Panel(
-        "[bold]Запуск повного пайплайну аналізу та генерації документа[/bold]",
-        border_style="blue",
-    ))
-
-    case_data = json.loads(Path(case_file).read_text(encoding="utf-8"))
-
-    # Крок 1 (опційно): збір рішень
-    if run_collect:
-        console.print("\n[bold]── Крок 1: Збір рішень ──[/bold]")
-        asyncio.run(_collect_async(
-            category=case_data.get("category", "civil"),
-            date_from=date(2020, 1, 1),
-            date_to=date.today(),
-            keywords=None,
-            court_level=case_data.get("court_level"),
-            region=None,
-            max_results=50,
-            use_claude=True,
-        ))
-
-    # Крок 2: аналіз
-    console.print("\n[bold]── Крок 2: Аналіз практики ──[/bold]")
-    report_path = _analyze_cmd(case_file, top_k=20, output=None)
-
-    # Крок 3: генерація документа
-    console.print("\n[bold]── Крок 3: Генерація документа ──[/bold]")
-
-    # Знаходимо JSON звіту (поряд з .md)
-    json_report_path = report_path.replace(".md", ".json")
-    if not Path(json_report_path).exists():
-        console.print(f"[red]JSON звіту не знайдено: {json_report_path}[/red]")
-        return
-
-    from shared.models import AnalysisReport, DocumentRequest
-    from shared.claude_client import ClaudeClient
-    from agent3_writer.generator import DocumentGenerator
-    from agent3_writer.docx_builder import DocxBuilder
-
-    settings = _load_settings()
-    analysis_data = json.loads(Path(json_report_path).read_text(encoding="utf-8"))
-    analysis_report = AnalysisReport.model_validate(analysis_data)
-
-    request = DocumentRequest(
-        document_type=doc_type,
-        analysis_report=analysis_report,
-        case_parties={
-            "plaintiff": plaintiff,
-            "defendant": defendant,
-            "court": court,
-        },
-        case_number=case_number or case_data.get("subject", "")[:20],
-    )
-
-    claude_client = ClaudeClient()
-    text = DocumentGenerator(claude_client).generate(request)
-    docx_path = DocxBuilder().build(text, request)
-
-    console.print(f"\n[bold green]✓ Пайплайн завершено![/bold green]")
-    console.print(f"  Звіт:     {report_path}")
-    console.print(f"  Документ: {docx_path}")
 
 
 # ===========================================================================
@@ -432,6 +211,104 @@ def stats():
         for res, count in sorted(s["results_distribution"].items(), key=lambda x: -x[1]):
             table2.add_row(res, str(count))
         console.print(table2)
+
+
+# ===========================================================================
+# Команда: smart-pipeline (5-агентний пайплайн)
+# ===========================================================================
+
+@cli.command("smart-pipeline")
+@click.option("--situation", "-s", default=None,
+              help="Текст ситуації / позову (або --situation-file)")
+@click.option("--situation-file", "-f", default=None, type=click.Path(exists=True),
+              help="Шлях до текстового файлу з описом ситуації")
+@click.option("--plaintiff", default="", help="Позивач (ПІБ або назва)")
+@click.option("--plaintiff-details", default="",
+              help="Деталі позивача: адреса, РНОКПП/ЄДРПОУ, пошта, тел.")
+@click.option("--defendant", default="", help="Відповідач (ПІБ або назва)")
+@click.option("--defendant-details", default="", help="Деталі відповідача: адреса, РНОКПП, пошта, тел.")
+@click.option("--court", default="", help="Назва суду (якщо відома)")
+@click.option("--lawyer", default="", help="ПІБ адвоката/представника")
+@click.option("--case-number", "-n", default="", help="Номер справи")
+@click.option("--max-iterations", default=3, show_default=True,
+              help="Максимум ітерацій покращення (рекомендовано 2–3)")
+@click.option("--analysis-file", "-a", default=None, type=click.Path(exists=True),
+              help="Існуючий JSON-звіт аналізу практики (пропустити збір рішень)")
+@click.option("--no-analysis", is_flag=True, default=False,
+              help="Не запускати аналіз судової практики")
+@click.option("--save-state", "save_state_flag", is_flag=True, default=False,
+              help="Зберегти повний стан пайплайну у JSON після завершення")
+def smart_pipeline(
+    situation, situation_file, plaintiff, plaintiff_details,
+    defendant, defendant_details, court, lawyer, case_number,
+    max_iterations, analysis_file, no_analysis, save_state_flag,
+):
+    """
+    5-агентний пайплайн: Архітектор - Збір - Критик - Генератор - Експерт
+
+    \b
+    Agent 1: Структурує ситуацію у правову позицію (архітектор)
+    Agent 2: Розраховує судовий збір і підсудність
+    Agent 3: Критично аналізує позицію (комунікує з Agent1/2)
+    Agent 4: Генерує документ + перевірка відповідності ЦПК/КАС/ГПК
+    Agent 5: Фінальний аудит - схвалює або відправляє на доопрацювання
+
+    \b
+    Приклади:
+      python main.py smart-pipeline --situation "Орендар не платить 6 місяців..."
+      python main.py smart-pipeline --situation-file situation.txt --plaintiff "Іванов І.І."
+      python main.py smart-pipeline -s "..." --max-iterations 2 --no-analysis
+    """
+    from orchestrator.pipeline_v2 import run_pipeline
+    from orchestrator.state import create_state, save_state as _save_state
+
+    # Читаємо текст ситуації
+    if situation_file:
+        raw_situation = Path(situation_file).read_text(encoding="utf-8").strip()
+    elif situation:
+        raw_situation = situation.strip()
+    else:
+        console.print("[red]Помилка: вкажіть --situation або --situation-file[/red]")
+        return
+
+    if not raw_situation:
+        console.print("[red]Помилка: текст ситуації порожній.[/red]")
+        return
+
+    _load_settings()
+
+    case_parties = {
+        "plaintiff": plaintiff,
+        "plaintiff_details": plaintiff_details or None,
+        "defendant": defendant,
+        "defendant_details": defendant_details or None,
+        "court": court,
+        "lawyer": lawyer or None,
+    }
+
+    state = create_state(
+        raw_situation=raw_situation,
+        case_parties=case_parties,
+        case_number=case_number,
+        max_iterations=max_iterations,
+    )
+
+    final_state = run_pipeline(
+        state=state,
+        run_analysis=not no_analysis and not analysis_file,
+        use_existing_analysis_path=analysis_file,
+    )
+
+    if save_state_flag:
+        path = _save_state(final_state)
+        console.print(f"[dim]Стан пайплайну збережено: {path}[/dim]")
+
+    if final_state.status == "completed":
+        console.print(f"\n[bold green]Готово![/bold green] Файл: {final_state.final_docx_path}")
+    else:
+        console.print(f"\n[red]Пайплайн завершився зі статусом: {final_state.status}[/red]")
+        if final_state.error_message:
+            console.print(f"[red]{final_state.error_message}[/red]")
 
 
 # ===========================================================================
