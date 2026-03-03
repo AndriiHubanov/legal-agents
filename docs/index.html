@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Legal Agents — Аналіз судової практики України</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      line-height: 1.6;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1a237e 0%, #283593 50%, #1565c0 100%);
+      padding: 60px 20px;
+      text-align: center;
+      border-bottom: 1px solid #30363d;
+    }
+
+    header h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      font-size: 1.1rem;
+      opacity: 0.85;
+      max-width: 600px;
+      margin: 0 auto 28px;
+    }
+
+    .badges {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 60px 20px;
+    }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      align-items: center;
+      gap: 12px;
+      margin: 40px 0;
+    }
+
+    .agent-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 28px 20px;
+      text-align: center;
+    }
+
+    .agent-card .icon {
+      font-size: 2.2rem;
+      margin-bottom: 12px;
+    }
+
+    .agent-card h3 {
+      font-size: 1rem;
+      color: #58a6ff;
+      margin-bottom: 8px;
+    }
+
+    .agent-card p {
+      font-size: 0.85rem;
+      color: #8b949e;
+    }
+
+    .arrow {
+      font-size: 1.5rem;
+      color: #30363d;
+      text-align: center;
+    }
+
+    .section-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin: 48px 0 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #30363d;
+      color: #f0f6fc;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .feature {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .feature h4 {
+      color: #58a6ff;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+
+    .feature p {
+      color: #8b949e;
+      font-size: 0.85rem;
+    }
+
+    .code-block {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 12px 0;
+      overflow-x: auto;
+    }
+
+    .code-block pre {
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.88rem;
+      color: #e6edf3;
+      white-space: pre;
+    }
+
+    .code-block .comment { color: #8b949e; }
+    .code-block .cmd { color: #79c0ff; }
+    .code-block .flag { color: #ffa657; }
+    .code-block .str { color: #a5d6ff; }
+
+    .stack-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .tech-badge {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .tech-badge .name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #f0f6fc;
+    }
+
+    .tech-badge .role {
+      font-size: 0.75rem;
+      color: #8b949e;
+      margin-top: 4px;
+    }
+
+    .warning {
+      background: #2d1b00;
+      border: 1px solid #9e6a03;
+      border-radius: 8px;
+      padding: 16px 20px;
+      font-size: 0.9rem;
+      color: #d29922;
+      margin: 28px 0;
+    }
+
+    .warning strong { color: #f0a000; }
+
+    .cta {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      margin: 48px 0 20px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #238636; color: #fff; }
+    .btn-secondary { background: #161b22; border: 1px solid #30363d; color: #e6edf3; }
+
+    footer {
+      text-align: center;
+      padding: 32px;
+      color: #8b949e;
+      font-size: 0.85rem;
+      border-top: 1px solid #30363d;
+    }
+
+    @media (max-width: 640px) {
+      .pipeline { grid-template-columns: 1fr; }
+      .arrow { transform: rotate(90deg); }
+      header h1 { font-size: 1.7rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⚖️ Legal Agents</h1>
+  <p>Мультиагентна система аналізу судової практики України на базі Claude AI</p>
+  <div class="badges">
+    <span class="badge">Python 3.11</span>
+    <span class="badge">Claude AI</span>
+    <span class="badge">ChromaDB RAG</span>
+    <span class="badge">Playwright</span>
+    <span class="badge">python-docx</span>
+  </div>
+</header>
+
+<main>
+
+  <h2 class="section-title">Як працює система</h2>
+
+  <div class="pipeline">
+    <div class="agent-card">
+      <div class="icon">🔍</div>
+      <h3>Агент 1 — Збирач</h3>
+      <p>Автоматичний збір рішень з reyestr.court.gov.ua через Playwright</p>
+    </div>
+    <div class="arrow">→</div>
+    <div class="agent-card">
+      <div class="icon">🧠</div>
+      <h3>Агент 2 — Аналітик</h3>
+      <p>RAG-пошук у ChromaDB + аналіз правових позицій через Claude API</p>
+    </div>
+    <div class="arrow">→</div>
+    <div class="agent-card">
+      <div class="icon">📄</div>
+      <h3>Агент 3 — Процесуаліст</h3>
+      <p>Генерація апеляцій, скарг та відзивів у форматі .docx</p>
+    </div>
+  </div>
+
+  <h2 class="section-title">Можливості</h2>
+
+  <div class="features">
+    <div class="feature">
+      <h4>Збір судової практики</h4>
+      <p>Автоматичний скрапінг рішень з фільтрами за категорією, датою, судом та регіоном</p>
+    </div>
+    <div class="feature">
+      <h4>Семантичний пошук</h4>
+      <p>Векторний пошук релевантних справ у ChromaDB з ранжуванням за авторитетністю суду</p>
+    </div>
+    <div class="feature">
+      <h4>AI-аналіз практики</h4>
+      <p>Claude визначає правові аргументи, контраргументи та рекомендовану стратегію</p>
+    </div>
+    <div class="feature">
+      <h4>Генерація документів</h4>
+      <p>Апеляційні та касаційні скарги, відзиви, клопотання — готові .docx файли</p>
+    </div>
+    <div class="feature">
+      <h4>Стандарти форматування</h4>
+      <p>Times New Roman 12pt, поля 3/1.5/2/2 см — відповідно до вимог українських судів</p>
+    </div>
+    <div class="feature">
+      <h4>CLI-інтерфейс</h4>
+      <p>Зручні команди collect / analyze / generate / pipeline / stats</p>
+    </div>
+  </div>
+
+  <h2 class="section-title">Швидкий старт</h2>
+
+  <div class="code-block"><pre><span class="comment"># 1. Клонувати та встановити</span>
+<span class="cmd">git</span> clone https://github.com/AndriiHubanov/legal-agents.git
+<span class="cmd">cd</span> legal-agents
+<span class="cmd">python</span> -m venv venv && venv\Scripts\activate
+<span class="cmd">pip</span> install -r requirements.txt
+<span class="cmd">playwright</span> install chromium</pre></div>
+
+  <div class="code-block"><pre><span class="comment"># 2. Налаштувати .env</span>
+<span class="cmd">copy</span> .env.example .env
+<span class="comment"># Додати ANTHROPIC_API_KEY у .env</span></pre></div>
+
+  <div class="code-block"><pre><span class="comment"># 3. Зібрати рішення</span>
+<span class="cmd">python</span> main.py collect <span class="flag">--category</span> <span class="str">civil</span> <span class="flag">--date-from</span> <span class="str">2023-01-01</span> <span class="flag">--keywords</span> <span class="str">"оренда,земля"</span>
+
+<span class="comment"># 4. Проаналізувати справу</span>
+<span class="cmd">python</span> main.py analyze <span class="flag">--case-file</span> <span class="str">case_example.json</span>
+
+<span class="comment"># 5. Згенерувати документ</span>
+<span class="cmd">python</span> main.py generate <span class="flag">--analysis-file</span> <span class="str">report.json</span> <span class="flag">--doc-type</span> <span class="str">appeal</span> <span class="flag">--case-number</span> <span class="str">"757/123/24-ц"</span></pre></div>
+
+  <h2 class="section-title">Технологічний стек</h2>
+
+  <div class="stack-grid">
+    <div class="tech-badge"><div class="name">Claude AI</div><div class="role">Аналіз та генерація</div></div>
+    <div class="tech-badge"><div class="name">ChromaDB</div><div class="role">Векторна БД</div></div>
+    <div class="tech-badge"><div class="name">Playwright</div><div class="role">Веб-скрапінг</div></div>
+    <div class="tech-badge"><div class="name">python-docx</div><div class="role">Генерація .docx</div></div>
+    <div class="tech-badge"><div class="name">Pydantic v2</div><div class="role">Моделі даних</div></div>
+    <div class="tech-badge"><div class="name">Click</div><div class="role">CLI-інтерфейс</div></div>
+  </div>
+
+  <div class="warning">
+    <strong>Важливо:</strong> Усі згенеровані документи є попередніми чернетками та потребують перевірки кваліфікованим юристом перед поданням до суду. Система не надає юридичних консультацій.
+  </div>
+
+  <div class="cta">
+    <a href="https://github.com/AndriiHubanov/legal-agents" class="btn btn-primary">
+      ★ GitHub репозиторій
+    </a>
+    <a href="https://github.com/AndriiHubanov/legal-agents/blob/main/README.md" class="btn btn-secondary">
+      Документація
+    </a>
+  </div>
+
+</main>
+
+<footer>
+  Legal Agents — відкрите програмне забезпечення під ліцензією MIT
+</footer>
+
+</body>
+</html>
