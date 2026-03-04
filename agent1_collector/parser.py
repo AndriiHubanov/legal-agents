@@ -1,6 +1,7 @@
 """
 Парсинг HTML рішень → структуровані дані
 """
+import json
 import re
 from datetime import date, datetime
 from bs4 import BeautifulSoup
@@ -23,6 +24,17 @@ COURT_NAME_MAP = {
     "вгсу": "Вищий господарський суд України",
     "васу": "Вищий адміністративний суд України",
 }
+
+_STRUCTURED_SYSTEM_PROMPT = """Ти аналітик судових рішень України.
+Витягни зі судового рішення структуровані дані у форматі JSON.
+
+Поля:
+- legal_positions (list[str]): 3-5 ключових правових позицій суду (конкретні висновки)
+- cited_laws (list[str]): всі статті нормативних актів у форматі "ст.X НПА" (наприклад "ст.22 ЦК України", "ст.156 ЗК України", "п.3 Порядку КМУ №284")
+- damage_amount (float | null): сума збитків у гривнях якщо вказана в рішенні, інакше null
+- evidence_types (list[str]): типи доказів, що згадуються (наприклад "акт перевірки Держгеокадастру", "висновок експерта", "протокол")
+
+Відповідай ВИКЛЮЧНО JSON без жодного тексту навколо."""
 
 
 def parse_decision_page(html: str) -> dict:
@@ -47,7 +59,6 @@ def parse_decision_page(html: str) -> dict:
     if case_number_el:
         data["registry_number"] = case_number_el.get_text(strip=True)
     else:
-        # Пошук через типовий шаблон номера справи
         match = re.search(r"\d{1,3}-\d{3,6}/\d{4}", html)
         if match:
             data["registry_number"] = match.group(0)
@@ -83,30 +94,50 @@ def parse_decision_page(html: str) -> dict:
     return data
 
 
+def extract_structured_positions(full_text: str, claude_client) -> dict:
+    """
+    Використовує Claude для витягу структурованих юридичних даних з рішення.
+    Повертає словник з полями:
+      - legal_positions (list[str]): 3-5 ключових правових позицій
+      - cited_laws (list[str]): конкретні статті законів
+      - damage_amount (float | None): сума збитків
+      - evidence_types (list[str]): типи доказів
+    """
+    trimmed = full_text[:10_000]
+    try:
+        raw = claude_client.analyze(_STRUCTURED_SYSTEM_PROMPT, trimmed)
+
+        # Витягуємо JSON з відповіді
+        match = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", raw)
+        json_str = match.group(1) if match else raw.strip()
+
+        if not json_str.startswith("{"):
+            obj_match = re.search(r"\{[\s\S]+\}", json_str)
+            json_str = obj_match.group(0) if obj_match else json_str
+
+        data = json.loads(json_str)
+        return {
+            "legal_positions": _clean_list(data.get("legal_positions", [])),
+            "cited_laws": _clean_list(data.get("cited_laws", [])),
+            "damage_amount": _parse_damage_amount(data.get("damage_amount")),
+            "evidence_types": _clean_list(data.get("evidence_types", [])),
+        }
+    except Exception as e:
+        logger.error(f"Помилка extract_structured_positions: {e}")
+        return {
+            "legal_positions": _fallback_positions(full_text),
+            "cited_laws": _extract_laws_regex(full_text),
+            "damage_amount": _extract_damage_amount_regex(full_text),
+            "evidence_types": [],
+        }
+
+
 def extract_legal_positions(full_text: str, claude_client) -> list[str]:
     """
-    Використовує Claude для витягу ключових правових позицій.
-    Повертає список з 3–5 позицій.
+    Зворотно сумісна обгортка: повертає тільки список правових позицій.
     """
-    system_prompt = (
-        "Ти юридичний аналітик. Витягни 3-5 ключових правових позицій "
-        "з цього судового рішення. Відповідай українською. "
-        "Формат відповіді: нумерований список позицій, кожна на новому рядку. "
-        "Тільки список, без вступу та коментарів."
-    )
-    # Обрізаємо текст до ~8000 символів для економії токенів
-    trimmed = full_text[:8000]
-    try:
-        response = claude_client.analyze(system_prompt, trimmed)
-        positions = []
-        for line in response.splitlines():
-            line = re.sub(r"^\d+[\.\)]\s*", "", line).strip()
-            if line and len(line) > 10:
-                positions.append(line)
-        return positions[:5]
-    except Exception as e:
-        logger.error(f"Помилка витягу правових позицій: {e}")
-        return []
+    result = extract_structured_positions(full_text, claude_client)
+    return result["legal_positions"]
 
 
 def normalize_court_name(raw_name: str) -> str:
@@ -116,7 +147,6 @@ def normalize_court_name(raw_name: str) -> str:
     for key, normalized in COURT_NAME_MAP.items():
         if key in lower:
             return normalized
-    # Прибираємо зайві пробіли
     return re.sub(r"\s+", " ", name)
 
 
@@ -126,7 +156,6 @@ def detect_decision_result(text: str) -> str:
     Пріоритет: частково задоволено > задоволено > відмовлено > закрито > ...
     """
     lower = text.lower()
-    # Перевіряємо від найконкретнішого до загального
     for result, keywords in RESULT_KEYWORDS.items():
         for kw in keywords:
             if kw in lower:
@@ -143,3 +172,60 @@ def _parse_date(date_str: str) -> date:
             continue
     logger.warning(f"Не вдалося розпарсити дату: {date_str!r}")
     return date.today()
+
+
+def _clean_list(items) -> list[str]:
+    """Очищує список від порожніх рядків"""
+    if not isinstance(items, list):
+        return []
+    return [str(item).strip() for item in items if str(item).strip()]
+
+
+def _parse_damage_amount(value) -> float | None:
+    """Перетворює значення суми збитків на float або None"""
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return None
+
+
+def _fallback_positions(text: str) -> list[str]:
+    """Базовий витяг позицій без Claude (regex)"""
+    positions = []
+    patterns = [
+        r"суд(?:ова колегія)?\s+(?:встановив|вважає|зазначає|дійшов)[^\.\!]{20,200}[\.!]",
+        r"колегія суддів\s+(?:вважає|зазначає)[^\.\!]{20,200}[\.!]",
+    ]
+    for pat in patterns:
+        for m in re.finditer(pat, text, re.I):
+            positions.append(m.group(0).strip())
+            if len(positions) >= 3:
+                break
+    return positions[:5]
+
+
+def _extract_laws_regex(text: str) -> list[str]:
+    """Витяг посилань на статті законів через regex (fallback)"""
+    pattern = r"(?:ст(?:атт[яі])?\.?\s*\d+(?:[,\s]+\d+)*\s+[А-ЯІЇЄ][А-ЯІЇЄа-яіїє\s]+(?:України)?)"
+    found = re.findall(pattern, text)
+    cleaned = list({re.sub(r"\s+", " ", f).strip() for f in found})
+    return cleaned[:10]
+
+
+def _extract_damage_amount_regex(text: str) -> float | None:
+    """Витяг суми збитків через regex (fallback)"""
+    patterns = [
+        r"(\d[\d\s]*[\d,\.]+)\s*(?:грн|гривень|гривні)",
+        r"збитки.*?(\d[\d\s]*[\d,\.]+)",
+    ]
+    for pat in patterns:
+        m = re.search(pat, text, re.I)
+        if m:
+            try:
+                amount_str = m.group(1).replace(" ", "").replace(",", ".")
+                return float(amount_str)
+            except ValueError:
+                continue
+    return None

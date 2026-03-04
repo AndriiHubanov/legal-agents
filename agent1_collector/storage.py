@@ -45,7 +45,7 @@ class DecisionStorage:
         # 1. JSON на диск
         json_path = Path(settings.RAW_DATA_PATH) / f"{decision.id}.json"
         json_path.write_text(
-            decision.model_dump_json(indent=2, default=str),
+            decision.model_dump_json(indent=2),
             encoding="utf-8",
         )
 
@@ -181,4 +181,8 @@ class DecisionStorage:
         parts = [decision.subject]
         if decision.legal_positions:
             parts.extend(decision.legal_positions)
+        if decision.cited_laws:
+            parts.append(" ".join(decision.cited_laws))
+        if decision.evidence_types:
+            parts.extend(decision.evidence_types)
         return " | ".join(parts)[:2000]
