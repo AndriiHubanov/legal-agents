@@ -19,6 +19,7 @@ def create_state(
     case_number: str = "",
     doc_type_hint: str = "appeal",
     max_iterations: int = 3,
+    supporting_docs: list[str] | None = None,
 ) -> PipelineState:
     """Створює початковий стан пайплайну."""
     return PipelineState(
@@ -29,6 +30,7 @@ def create_state(
         doc_type_hint=doc_type_hint,
         max_iterations=max_iterations,
         status="pending",
+        supporting_docs=supporting_docs or [],
     )
 
 

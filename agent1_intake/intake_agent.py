@@ -109,6 +109,7 @@ class IntakeAgent:
         raw_situation: str,
         critic_questions: list[str] | None = None,
         iteration: int = 0,
+        supporting_docs: list[str] | None = None,
     ) -> tuple[IntakeResult, CacheStats]:
         """
         Обробляє вхідну ситуацію (з урахуванням питань від Агента 3).
@@ -116,11 +117,13 @@ class IntakeAgent:
         raw_situation    — оригінальний текст ситуації від користувача.
         critic_questions — питання/заперечення від Агента 3 (при повторних ітераціях).
         iteration        — номер ітерації (для логування).
+        supporting_docs  — витягнутий текст завантажених файлів (передається тільки на ітерації 0).
         """
         dynamic_system = self._build_dynamic_system(iteration, critic_questions)
-        user_message = self._build_user_message(raw_situation, critic_questions)
+        user_message = self._build_user_message(raw_situation, critic_questions, supporting_docs)
 
-        logger.info(f"[Agent1] Ітерація {iteration}: аналізую ситуацію ({len(raw_situation)} символів)")
+        doc_info = f", {len(supporting_docs)} файл(и)" if supporting_docs else ""
+        logger.info(f"[Agent1] Ітерація {iteration}: аналізую ситуацію ({len(raw_situation)} символів{doc_info})")
 
         raw_response, stats = self.claude.analyze_cached(
             cached_system=_CACHED_SYSTEM,
@@ -149,11 +152,20 @@ class IntakeAgent:
         )
 
     @staticmethod
-    def _build_user_message(raw_situation: str, critic_questions: list[str] | None) -> str:
+    def _build_user_message(
+        raw_situation: str,
+        critic_questions: list[str] | None,
+        supporting_docs: list[str] | None = None,
+    ) -> str:
         parts = [
             "## ТЕКСТ СИТУАЦІЇ / ПОЗОВУ\n",
             raw_situation.strip(),
         ]
+        if supporting_docs:
+            parts.append("\n\n## ДОДАТКОВІ ДОКУМЕНТИ (завантажені користувачем)")
+            parts.append("Проаналізуй ці документи разом із ситуацією для точнішого визначення правової позиції:")
+            for i, doc_text in enumerate(supporting_docs, 1):
+                parts.append(f"\n### Документ {i}\n{doc_text}")
         if critic_questions:
             parts.append("\n\n## ЗАУВАЖЕННЯ ВІД КРИТИКА (врахувати при аналізі)")
             for q in critic_questions:

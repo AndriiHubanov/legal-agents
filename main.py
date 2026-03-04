@@ -312,6 +312,37 @@ def smart_pipeline(
 
 
 # ===========================================================================
+# Команда: server (Web UI)
+# ===========================================================================
+
+@cli.command("server")
+@click.option("--host", default="127.0.0.1", show_default=True,
+              help="Адреса хоста")
+@click.option("--port", default=8000, show_default=True,
+              help="Порт сервера")
+def server(host, port):
+    """
+    Запустити Web UI сервер (process.html)
+
+    \b
+    Приклад:
+      python main.py server
+      python main.py server --port 8080
+    """
+    import webbrowser
+    import uvicorn
+
+    url = f"http://{host}:{port}"
+    console.print(Panel(
+        f"Сервер: [cyan bold]{url}[/cyan bold]\n"
+        f"Зупинити: [dim]Ctrl+C[/dim]",
+        title="[bold blue]Legal Agents - Web UI",
+    ))
+    webbrowser.open(url)
+    uvicorn.run("server:app", host=host, port=port, reload=False)
+
+
+# ===========================================================================
 # Точка входу
 # ===========================================================================
 

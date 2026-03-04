@@ -143,6 +143,7 @@ class PipelineState(BaseModel):
     case_parties: dict = Field(default_factory=dict)
     case_number: str = ""
     doc_type_hint: str = "appeal"
+    supporting_docs: list[str] = Field(default_factory=list)  # витягнутий текст завантажених файлів
 
     # Результати кожного агента
     intake_result: Optional[IntakeResult] = None

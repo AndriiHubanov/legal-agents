@@ -62,6 +62,7 @@ def run_pipeline(
     intake, stats1 = agent1.process(
         raw_situation=state.raw_situation,
         iteration=0,
+        supporting_docs=state.supporting_docs or None,
     )
     state.intake_result = intake
     _print_agent_result("Agent1", stats1, {

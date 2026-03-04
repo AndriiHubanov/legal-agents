@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Legal Agents — Підготовка документів</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    header .logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    header h1 { font-size: 1.25rem; font-weight: 700; color: #f1f5f9; }
+    header p  { font-size: 0.8rem; color: #94a3b8; }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+
+    /* ── Секція ── */
+    .section {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title::before {
+      content: '';
+      display: block;
+      width: 3px; height: 14px;
+      background: #3b82f6;
+      border-radius: 2px;
+    }
+
+    /* ── Форма ── */
+    label { display: block; font-size: 0.82rem; color: #94a3b8; margin-bottom: 5px; }
+    input[type=text], textarea, select {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #e2e8f0;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    input[type=text]:focus, textarea:focus, select:focus {
+      border-color: #3b82f6;
+    }
+    textarea { resize: vertical; min-height: 140px; }
+    select { cursor: pointer; }
+    select option { background: #1e293b; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-group { margin-bottom: 14px; }
+
+    /* ── Details toggle ── */
+    details summary {
+      cursor: pointer;
+      font-size: 0.82rem;
+      color: #64748b;
+      user-select: none;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 0;
+    }
+    details summary::before { content: '▶'; font-size: 0.65rem; transition: transform 0.2s; }
+    details[open] summary::before { transform: rotate(90deg); }
+    details summary::-webkit-details-marker { display: none; }
+
+    /* ── Файли ── */
+    .file-drop {
+      border: 2px dashed #334155;
+      border-radius: 10px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .file-drop:hover, .file-drop.drag-over {
+      border-color: #3b82f6;
+      background: rgba(59,130,246,0.05);
+    }
+    .file-drop p { font-size: 0.85rem; color: #64748b; margin-top: 8px; }
+    .file-drop .icon { font-size: 28px; }
+    #file-input { display: none; }
+
+    .file-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.84rem;
+    }
+    .file-item .fname { flex: 1; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-item .fsize { color: #64748b; white-space: nowrap; }
+    .file-item .rm {
+      cursor: pointer;
+      color: #64748b;
+      font-size: 1rem;
+      line-height: 1;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: color 0.2s;
+    }
+    .file-item .rm:hover { color: #ef4444; }
+
+    /* ── Перемикачі ── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle-row input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: #3b82f6; }
+
+    /* ── Кнопка ── */
+    #run-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      margin-top: 8px;
+    }
+    #run-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    #run-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── Прогрес ── */
+    #progress-section { display: none; }
+    .progress-bar-wrap {
+      background: #0f172a;
+      border-radius: 100px;
+      height: 6px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #3b82f6, #6366f1);
+      border-radius: 100px;
+      transition: width 0.5s ease;
+    }
+    #progress-label { font-size: 0.8rem; color: #64748b; margin-bottom: 14px; min-height: 18px; }
+
+    #log-output {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 14px;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.78rem;
+      color: #94a3b8;
+      line-height: 1.6;
+      height: 260px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* ── Результат ── */
+    #result-section { display: none; }
+    #error-section  { display: none; }
+
+    .result-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(34,197,94,0.08);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 10px;
+      padding: 18px 20px;
+    }
+    .result-card .icon { font-size: 2rem; }
+    .result-card h3 { font-size: 1rem; font-weight: 600; color: #4ade80; }
+    .result-card p  { font-size: 0.82rem; color: #86efac; margin-top: 2px; }
+
+    #download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+      background: #22c55e;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    #download-btn:hover { opacity: 0.85; }
+
+    .error-card {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 10px;
+      padding: 18px 20px;
+    }
+    .error-card h3 { color: #f87171; font-size: 1rem; margin-bottom: 8px; }
+    #error-message { font-size: 0.85rem; color: #fca5a5; font-family: monospace; white-space: pre-wrap; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚖</div>
+  <div>
+    <h1>Legal Agents</h1>
+    <p>5-агентна система підготовки процесуальних документів</p>
+  </div>
+</header>
+
+<div class="container">
+<form id="run-form" autocomplete="off">
+
+  <!-- Ситуація -->
+  <div class="section">
+    <div class="section-title">Опис ситуації</div>
+    <div class="form-group">
+      <label for="situation">Текст ситуації <span style="color:#ef4444">*</span></label>
+      <textarea id="situation" name="situation" required
+        placeholder="Опишіть ситуацію детально: хто сторони, що сталось, які є докази, яку суму стягуєте або чого домагаєтесь..."></textarea>
+    </div>
+  </div>
+
+  <!-- Сторони та справа -->
+  <div class="section">
+    <div class="section-title">Сторони та реквізити справи</div>
+    <details>
+      <summary>Розгорнути</summary>
+      <div style="padding-top:16px">
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Позивач (ПІБ або назва)</label>
+            <input type="text" name="plaintiff" placeholder="Іваненко Іван Іванович">
+          </div>
+          <div class="form-group">
+            <label>Деталі позивача</label>
+            <input type="text" name="plaintiff_details" placeholder="м. Київ, вул. Хрещатик 1, РНОКПП 123456789">
+          </div>
+          <div class="form-group">
+            <label>Відповідач (ПІБ або назва)</label>
+            <input type="text" name="defendant" placeholder="ТОВ Агро-Захід">
+          </div>
+          <div class="form-group">
+            <label>Деталі відповідача</label>
+            <input type="text" name="defendant_details" placeholder="м. Київ, вул. Польова 5, ЄДРПОУ 12345678">
+          </div>
+          <div class="form-group">
+            <label>Назва суду</label>
+            <input type="text" name="court" placeholder="Господарський суд міста Києва">
+          </div>
+          <div class="form-group">
+            <label>ПІБ адвоката / представника</label>
+            <input type="text" name="lawyer" placeholder="Петренко П.П.">
+          </div>
+          <div class="form-group">
+            <label>Номер справи</label>
+            <input type="text" name="case_number" placeholder="910/1234/24">
+          </div>
+          <div class="form-group">
+            <label>Кількість ітерацій покращення</label>
+            <select name="max_iterations">
+              <option value="1">1 — швидко (базова якість)</option>
+              <option value="2" selected>2 — рекомендовано</option>
+              <option value="3">3 — максимальна якість</option>
+            </select>
+          </div>
+        </div>
+        <label class="toggle-row" style="margin-top:4px">
+          <input type="checkbox" name="run_analysis" value="true" id="run-analysis-check">
+          Аналіз судової практики через ChromaDB
+          <span style="color:#64748b;font-size:0.78rem">(потребує попередньо зібраної бази рішень)</span>
+        </label>
+      </div>
+    </details>
+  </div>
+
+  <!-- Документи -->
+  <div class="section">
+    <div class="section-title">Документи для Агента 1</div>
+    <p style="font-size:0.82rem;color:#64748b;margin-bottom:14px">
+      Завантажте договори, акти, докази — Agent 1 проаналізує їх разом із описом ситуації,
+      щоб Agent 2 точніше знайшов релевантну судову практику.
+    </p>
+    <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+      <div class="icon">📂</div>
+      <strong style="font-size:0.9rem">Натисніть або перетягніть файли</strong>
+      <p>Підтримуються: PDF, DOCX, TXT</p>
+    </div>
+    <input type="file" id="file-input" name="files" accept=".pdf,.docx,.txt" multiple>
+    <div class="file-list" id="file-list"></div>
+  </div>
+
+  <!-- Кнопка -->
+  <button type="submit" id="run-btn">Запустити пайплайн</button>
+
+</form>
+
+<!-- Прогрес -->
+<div id="progress-section" class="section" style="margin-top:20px">
+  <div class="section-title">Виконання пайплайну</div>
+  <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar"></div></div>
+  <div id="progress-label">Ініціалізація...</div>
+  <div id="log-output"></div>
+</div>
+
+<!-- Результат -->
+<div id="result-section" class="section" style="margin-top:20px">
+  <div class="section-title">Результат</div>
+  <div class="result-card">
+    <div class="icon">✅</div>
+    <div>
+      <h3>Документ готовий!</h3>
+      <p>Завантажте та перевірте з кваліфікованим юристом перед поданням до суду.</p>
+    </div>
+  </div>
+  <a id="download-btn" href="#" download>⬇ Завантажити .docx</a>
+</div>
+
+<!-- Помилка -->
+<div id="error-section" class="section" style="margin-top:20px">
+  <div class="section-title">Помилка виконання</div>
+  <div class="error-card">
+    <h3>Пайплайн завершився з помилкою</h3>
+    <div id="error-message"></div>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<script>
+// ============================================================
+// Управління списком файлів
+// ============================================================
+let selectedFiles = new DataTransfer();
+
+const fileInput = document.getElementById('file-input');
+const fileList  = document.getElementById('file-list');
+const fileDrop  = document.getElementById('file-drop');
+
+function renderFileList() {
+  fileList.innerHTML = '';
+  for (let i = 0; i < selectedFiles.files.length; i++) {
+    const f = selectedFiles.files[i];
+    const item = document.createElement('div');
+    item.className = 'file-item';
+    item.innerHTML = `
+      <span style="font-size:1rem">${fileIcon(f.name)}</span>
+      <span class="fname">${f.name}</span>
+      <span class="fsize">${formatSize(f.size)}</span>
+      <span class="rm" title="Видалити" data-idx="${i}">✕</span>
+    `;
+    fileList.appendChild(item);
+  }
+  fileList.querySelectorAll('.rm').forEach(btn => {
+    btn.addEventListener('click', () => removeFile(parseInt(btn.dataset.idx)));
+  });
+}
+
+function fileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  if (ext === 'pdf')  return '📄';
+  if (ext === 'docx') return '📝';
+  return '📃';
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' Б';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' КБ';
+  return (bytes / 1024 / 1024).toFixed(1) + ' МБ';
+}
+
+function addFiles(newFiles) {
+  const dt = new DataTransfer();
+  for (let i = 0; i < selectedFiles.files.length; i++) dt.items.add(selectedFiles.files[i]);
+  for (let f of newFiles) {
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (!['pdf','docx','txt'].includes(ext)) { alert(`Непідтримуваний формат: ${f.name}`); continue; }
+    dt.items.add(f);
+  }
+  selectedFiles = dt;
+  fileInput.files = selectedFiles.files;
+  renderFileList();
+}
+
+function removeFile(idx) {
+  const dt = new DataTransfer();
+  for (let i = 0; i < selectedFiles.files.length; i++) {
+    if (i !== idx) dt.items.add(selectedFiles.files[i]);
+  }
+  selectedFiles = dt;
+  fileInput.files = selectedFiles.files;
+  renderFileList();
+}
+
+fileInput.addEventListener('change', () => addFiles(fileInput.files));
+
+fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('drag-over'); });
+fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('drag-over'));
+fileDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  fileDrop.classList.remove('drag-over');
+  addFiles(e.dataTransfer.files);
+});
+
+// ============================================================
+// Прогрес-бар (евристика по ключових словах лога)
+// ============================================================
+const PIPELINE_STEPS = [
+  { keyword: 'Крок 1', pct: 10 },
+  { keyword: 'Agent1',  pct: 18 },
+  { keyword: 'Крок 2',  pct: 25 },
+  { keyword: 'Agent2',  pct: 33 },
+  { keyword: 'Крок 3',  pct: 40 },
+  { keyword: 'Аналіз',  pct: 48 },
+  { keyword: 'Ітерація 1', pct: 55 },
+  { keyword: 'Agent3',  pct: 60 },
+  { keyword: 'Agent4',  pct: 72 },
+  { keyword: 'Compliance', pct: 80 },
+  { keyword: 'Agent5',  pct: 88 },
+  { keyword: 'Збережено', pct: 96 },
+];
+
+let currentPct = 0;
+function updateProgress(line) {
+  for (const step of PIPELINE_STEPS) {
+    if (line.includes(step.keyword) && step.pct > currentPct) {
+      currentPct = step.pct;
+      document.getElementById('progress-bar').style.width = currentPct + '%';
+      document.getElementById('progress-label').textContent = line.substring(0, 100);
+      break;
+    }
+  }
+}
+
+// ============================================================
+// Відправка форми + SSE
+// ============================================================
+document.getElementById('run-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const situation = document.getElementById('situation').value.trim();
+  if (!situation) { alert('Введіть текст ситуації'); return; }
+
+  // Показуємо секцію прогресу
+  document.getElementById('progress-section').style.display = 'block';
+  document.getElementById('result-section').style.display  = 'none';
+  document.getElementById('error-section').style.display   = 'none';
+  document.getElementById('log-output').textContent = '';
+  document.getElementById('progress-bar').style.width = '3%';
+  document.getElementById('progress-label').textContent = 'Відправляємо запит...';
+  document.getElementById('run-btn').disabled = true;
+  currentPct = 3;
+
+  // Будуємо FormData вручну, додаючи файли
+  const fd = new FormData(this);
+  // Замінюємо поле files на поточний DataTransfer
+  fd.delete('files');
+  for (let i = 0; i < selectedFiles.files.length; i++) {
+    fd.append('files', selectedFiles.files[i]);
+  }
+
+  let sessionId;
+  try {
+    const resp = await fetch('/api/run', { method: 'POST', body: fd });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      throw new Error(err.detail || resp.statusText);
+    }
+    const data = await resp.json();
+    sessionId = data.session_id;
+  } catch (err) {
+    showError(err.message);
+    return;
+  }
+
+  // SSE
+  const evtSource = new EventSource(`/api/logs/${sessionId}`);
+  const logEl = document.getElementById('log-output');
+
+  evtSource.onmessage = function(event) {
+    if (event.data === '[DONE]') {
+      evtSource.close();
+      finishPipeline(sessionId);
+      return;
+    }
+    logEl.textContent += event.data + '\n';
+    logEl.scrollTop = logEl.scrollHeight;
+    updateProgress(event.data);
+  };
+
+  evtSource.onerror = function() {
+    evtSource.close();
+    finishPipeline(sessionId);
+  };
+});
+
+async function finishPipeline(sessionId) {
+  document.getElementById('run-btn').disabled = false;
+
+  let status;
+  try {
+    const resp = await fetch(`/api/status/${sessionId}`);
+    status = await resp.json();
+  } catch {
+    showError('Не вдалося отримати статус сесії');
+    return;
+  }
+
+  if (status.status === 'completed') {
+    document.getElementById('progress-bar').style.width = '100%';
+    document.getElementById('progress-label').textContent = 'Завершено!';
+    document.getElementById('download-btn').href = `/api/download/${sessionId}`;
+    document.getElementById('result-section').style.display = 'block';
+    document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
+  } else {
+    showError(status.error_message || `Статус: ${status.status}`);
+  }
+}
+
+function showError(msg) {
+  document.getElementById('run-btn').disabled = false;
+  document.getElementById('error-message').textContent = msg;
+  document.getElementById('error-section').style.display = 'block';
+  document.getElementById('error-section').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
