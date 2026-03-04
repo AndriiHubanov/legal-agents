@@ -83,6 +83,14 @@ _CACHED_SYSTEM = (
 — Спростуй у тексті заперечення, виявлені критиком.
 — Включи розрахунок судового збору у вступній частині або у прохальній.
 — Якщо є пропущена інформація — вкажи [___] для заповнення вручну.
+
+═══ ІНСТРУМЕНТИ ═══
+Маєш доступ до інструментів для уточнення даних під час генерації:
+- get_legal_norm: виклич перед цитуванням статті закону щоб отримати точне формулювання норми.
+  Це запобігає помилковому цитуванню. Наприклад: get_legal_norm("ст.22 ЦК України").
+- get_procedural_requirements: виклич якщо потрібно перевірити обов'язкові елементи документа.
+- get_document_template_hints: виклич якщо потрібно уточнити структуру конкретної секції.
+Інструменти — опціональні. Пріоритет — якість і точність цитування норм права.
 """
     + "\n\n"
     + CPC_REQUIREMENTS_TEXT
@@ -132,10 +140,13 @@ class GeneratorAgentV2:
 
         logger.info(f"[Agent4] Ітерація {iteration}: генерую документ типу {intake.recommended_doc_type}")
 
-        raw_text, gen_stats = self.claude.analyze_cached(
+        from shared.tools import GENERATOR_TOOLS, GENERATOR_HANDLERS
+        raw_text, gen_stats = self.claude.run_agent(
             cached_system=_CACHED_SYSTEM,
             dynamic_system=dynamic_system,
             user_message=user_message,
+            tools=GENERATOR_TOOLS,
+            tool_handlers=GENERATOR_HANDLERS,
             label=f"Agent4-gen-iter{iteration}",
         )
 

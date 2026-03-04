@@ -56,6 +56,11 @@ _CACHED_SYSTEM = (
 Поле claim_amount: null якщо немайнова вимога.
 Поле fee_amount: завжди числове (грн).
 Мова: ТІЛЬКИ українська.
+
+═══ ІНСТРУМЕНТИ ═══
+Маєш доступ до інструменту get_fee_rate.
+Використовуй його якщо тип вимог неоднозначний або потрібно підтвердити ставку збору
+для нестандартного випадку. Для стандартних випадків — розраховуй самостійно.
 """
     + "\n\n"
     + COURT_FEE_LAW_TEXT
@@ -88,10 +93,13 @@ class FeesCalculator:
 
         logger.info(f"[Agent2] Ітерація {iteration}: розраховую судовий збір")
 
-        raw_response, stats = self.claude.analyze_cached(
+        from shared.tools import FEES_TOOLS, FEES_HANDLERS
+        raw_response, stats = self.claude.run_agent(
             cached_system=_CACHED_SYSTEM,
             dynamic_system=dynamic_system,
             user_message=user_message,
+            tools=FEES_TOOLS,
+            tool_handlers=FEES_HANDLERS,
             label=f"Agent2-iter{iteration}",
         )
 

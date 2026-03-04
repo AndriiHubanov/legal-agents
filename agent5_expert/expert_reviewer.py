@@ -99,6 +99,15 @@ _CACHED_SYSTEM = (
 }
 
 Мова: ТІЛЬКИ українська. Будь конкретним і безкомпромісним — якість важливіша за швидкість.
+
+═══ ІНСТРУМЕНТИ ═══
+Маєш доступ до інструментів для повноцінного аудиту. Порядок використання:
+1. validate_document_structure: ОБОВ'ЯЗКОВО виклич першим — перевір наявність усіх секцій.
+2. search_court_decisions: перевір кожне посилання на судову практику у документі.
+   Якщо рішення не знайдено — вказати у mandatory_fixes.
+3. get_legal_norm: звір цитовані норми права з першоджерелом (якщо є сумніви у точності).
+4. get_procedural_requirements: перевір відповідність документа вимогам кодексу.
+Використовуй інструменти для обґрунтування конкретних зауважень.
 """
     + "\n\n"
     + LEGAL_QUALITY_STANDARDS
@@ -135,10 +144,13 @@ class ExpertReviewer:
 
         logger.info(f"[Agent5] Ітерація {iteration}: фінальний аудит документа")
 
-        raw_response, stats = self.claude.analyze_cached(
+        from shared.tools import EXPERT_TOOLS, EXPERT_HANDLERS
+        raw_response, stats = self.claude.run_agent(
             cached_system=_CACHED_SYSTEM,
             dynamic_system=dynamic_system,
             user_message=user_message,
+            tools=EXPERT_TOOLS,
+            tool_handlers=EXPERT_HANDLERS,
             label=f"Agent5-iter{iteration}",
         )
 

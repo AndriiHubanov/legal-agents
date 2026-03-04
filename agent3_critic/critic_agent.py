@@ -96,6 +96,14 @@ _CACHED_SYSTEM = (
 }
 
 Мова: ТІЛЬКИ українська. Будь конкретним і точним у кожному зауваженні.
+
+═══ ІНСТРУМЕНТИ ═══
+Маєш доступ до інструментів для перевірки фактів. Використовуй їх коли:
+- search_court_decisions: перед посиланням на конкретне рішення — перевір чи воно є в БД.
+  Якщо рішення не знайдено — не рекомендуй його. Якщо знайдено — наведи точні дані.
+- get_legal_norm: якщо потрібен точний текст статті для аналізу правової позиції.
+- get_procedural_requirements: якщо потрібно звірити вимоги кодексу до конкретного документа.
+Інструменти — опціональні. Використовуй тільки коли потрібно підтвердити конкретний факт.
 """
     + "\n\n"
     + CPC_REQUIREMENTS_TEXT
@@ -132,10 +140,13 @@ class CriticAgent:
 
         logger.info(f"[Agent3] Ітерація {iteration}: критичний аналіз позиції")
 
-        raw_response, stats = self.claude.analyze_cached(
+        from shared.tools import CRITIC_TOOLS, CRITIC_HANDLERS
+        raw_response, stats = self.claude.run_agent(
             cached_system=_CACHED_SYSTEM,
             dynamic_system=dynamic_system,
             user_message=user_message,
+            tools=CRITIC_TOOLS,
+            tool_handlers=CRITIC_HANDLERS,
             label=f"Agent3-iter{iteration}",
         )
 
